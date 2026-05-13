@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard Intelligence Scanner</title>
+    <link rel="stylesheet" href="scanner.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-panel" id="main-panel">
+            <div class="header">
+                <div class="logo">
+                    <div class="shield-icon"></div>
+                    <h1>Phish<span>Guard</span> AI</h1>
+                </div>
+                <div class="badge">V1.0 LIVE</div>
+            </div>
+
+            <div class="content" id="scanner-content">
+                <div class="scanning-animation">
+                    <div class="pulse-ring"></div>
+                    <div class="scanner-bar"></div>
+                    <div class="status-icon" id="status-icon">🔍</div>
+                </div>
+                
+                <h2 id="status-title">Analyzing URL Intelligence</h2>
+                <p id="target-url">Extracting metadata...</p>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+
+                <div class="details" id="scan-details">
+                    <div class="detail-item">
+                        <span class="label">Detection Engine</span>
+                        <span class="value" id="engine-value">XGBoost Classifier</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Security Confidence</span>
+                        <span class="value" id="confidence-value">Calculating...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions" id="action-panel" style="display: none;">
+                <button id="proceed-btn" class="btn btn-primary">Proceed to Website</button>
+                <button id="back-btn" class="btn btn-secondary">Go Back to Safety</button>
+            </div>
+            
+            <div class="footer">
+                Powered by Advanced Machine Learning Intelligence
+            </div>
+        </div>
+    </div>
+    <script src="scanner.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard - Advanced Phishing Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .hero {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 4rem 5%;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .feature-card {
+            text-align: left;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stats-section {
+            margin-top: 6rem;
+            padding: 4rem;
+            border-radius: 32px;
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.05) 0%, rgba(191, 90, 242, 0.05) 100%);
+            border: 1px solid var(--glass-border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+        }
+
+        .stat-item h2 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🛡️ <span class="gradient-text">PhishGuard</span></div>
+        <ul class="nav-links">
+            <li><a href="/" class="active">Home</a></li>
+            {% if current_user.is_authenticated %}
+                <li><a href="/index">Scanner</a></li>
+                <li><a href="/bulk">Bulk Scanner</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/history">History</a></li>
+                <li><a href="/logout" class="logout-btn">Log Out</a></li>
+            {% else %}
+                <li><a href="/login">Login</a></li>
+                <li><a href="/register">Register</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        <section class="hero">
+            <h1 class="gradient-text">Stop Phishing Before It Starts.</h1>
+            <p>Advanced AI-powered URL analysis system that identifies malicious websites with 97.4% accuracy using state-of-the-art machine learning.</p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                <a href="/login" class="btn btn-primary">Get Started Now</a>
+                <a href="#features" class="btn btn-outline">Explore Features</a>
+            </div>
+        </section>
+
+        <section id="features" class="features-grid">
+            <div class="glass-card feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI Analysis</h3>
+                <p>Our ensemble models analyze 30+ URL features to detect patterns invisible to the human eye.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-time Scanning</h3>
+                <p>Instantaneous processing and classification of URLs with detailed risk assessment.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Detailed Insights</h3>
+                <p>Understand exactly why a URL was flagged with our comprehensive feature extraction technology.</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon">📜</div>
+                <h3>Audit History</h3>
+                <p>Maintain a complete record of all scanned URLs for organizational security auditing.</p>
+            </div>
+        </section>
+
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h2 class="gradient-text">97.4%</h2>
+                    <p>Model Accuracy</p>
+                </div>
+                <div class="stat-item">
+                    <h2 class="gradient-text">30+</h2>
+                    <p>Analyzed Signatures</p>
+                </div>
+                <div class="stat-item">
+                    <h2 class="gradient-text">0.1s</h2>
+                    <p>Response Time</p>
+                </div>
+                <div class="stat-item">
+                    <h2 class="gradient-text">10k+</h2>
+                    <p>Trained Dataset</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PhishGuard. AI-Driven Phishing Detection System.</p>
+    </footer>
+</body>
+</html>

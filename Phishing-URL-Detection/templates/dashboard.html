@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Phishing URL Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .stat-label {
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.8rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span class="pulse">🛡️</span> PhishGuard
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}">Scan URL</a></li>
+            <li><a href="{{ url_for('bulk_scan') }}">Bulk Scan</a></li>
+            <li><a href="{{ url_for('email_scanner') }}">Email Scanner</a></li>
+            <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
+            <li><a href="{{ url_for('history') }}">History</a></li>
+            <li><a href="{{ url_for('logout') }}" class="logout-btn">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        <div class="header">
+            <h1 class="gradient-text">Visual Analytics</h1>
+            <p style="color: var(--text-secondary);">Insightful breakdown of your URL scanning activity.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="dashboard-grid">
+            <div class="glass-card stat-card">
+                <span class="stat-number gradient-text">{{ total_scans }}</span>
+                <span class="stat-label">Total Scans</span>
+            </div>
+            <div class="glass-card stat-card">
+                <span class="stat-number" style="color: var(--accent-green);">{{ safe_count }}</span>
+                <span class="stat-label">Safe URLs</span>
+            </div>
+            <div class="glass-card stat-card">
+                <span class="stat-number" style="color: var(--accent-red);">{{ phishing_count }}</span>
+                <span class="stat-label">Phishing URLs</span>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="dashboard-grid">
+            <!-- Safe vs Phishing Pie Chart -->
+            <div class="glass-card">
+                <h3>Detection Ratio</h3>
+                <div class="chart-container">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Model Usage Bar Chart -->
+            <div class="glass-card">
+                <h3>Model Performance</h3>
+                <div class="chart-container">
+                    <canvas id="modelChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Scan Trends Line Chart -->
+            <div class="glass-card full-width">
+                <h3>Scan Activity (Last 7 Days)</h3>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PhishGuard AI. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Common Chart Options
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#ffffff', font: { family: 'Outfit' } }
+                }
+            }
+        };
+
+        // 1. Ratio Chart (Pie)
+        new Chart(document.getElementById('ratioChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Safe', 'Phishing'],
+                datasets: [{
+                    data: [{{ safe_count }}, {{ phishing_count }}],
+                    backgroundColor: ['#30d158', '#ff453a'],
+                    borderColor: 'rgba(0,0,0,0)',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                ...chartOptions,
+                cutout: '70%'
+            }
+        });
+
+        // 2. Model Chart (Bar)
+        new Chart(document.getElementById('modelChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ model_labels|tojson }},
+                datasets: [{
+                    label: 'Scans performed',
+                    data: {{ model_data|tojson }},
+                    backgroundColor: '#00f5ff',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0c0' }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { color: '#a0a0c0' }
+                    }
+                }
+            }
+        });
+
+        // 3. Trend Chart (Line)
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: {{ daily_labels|tojson }},
+                datasets: [{
+                    label: 'Daily Scans',
+                    data: {{ daily_data|tojson }},
+                    borderColor: '#bf5af2',
+                    backgroundColor: 'rgba(191, 90, 242, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#00f5ff'
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0c0' }
+                    },
+                    x: { 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0c0' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

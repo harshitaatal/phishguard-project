@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligence History - PhishGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .history-wrapper {
+            max-width: 1100px;
+            margin: 2rem auto;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-safe { background: rgba(48, 209, 88, 0.2); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.3); }
+        .status-unsafe { background: rgba(255, 69, 58, 0.2); color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.3); }
+
+        .clear-btn {
+            background: rgba(255, 69, 58, 0.1);
+            color: #ff453a;
+            border: 1px solid rgba(255, 69, 58, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .clear-btn:hover {
+            background: rgba(255, 69, 58, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: var(--text-secondary);
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🛡️ <span class="gradient-text">PhishGuard</span></div>
+        <ul class="nav-links">
+            <li><a href="/index">Scanner</a></li>
+            <li><a href="/bulk">Bulk Scanner</a></li>
+            <li><a href="/email_scanner">Email Scanner</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/history" class="active">History</a></li>
+            <li><a href="/logout" class="logout-btn">Log Out</a></li>
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        <div class="history-wrapper">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+                <div>
+                    <h1 class="gradient-text">Intelligence Log</h1>
+                    <p style="color: var(--text-secondary);">Audit trail of all analyzed URLs and their security signatures</p>
+                </div>
+                {% if history %}
+                <a href="/clear_history" class="clear-btn" onclick="return confirm('Archive all current logs?')">Clear History</a>
+                {% endif %}
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="glass-card">
+                {% if history %}
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Target URL</th>
+                                <th>Security Status</th>
+                                <th>Intelligence Status</th>
+                                <th>Timestamp</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in history %}
+                            <tr>
+                                <td style="max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <span style="color: var(--accent-cyan);">{{ item.url }}</span>
+                                </td>
+                                <td>
+                                    {% if item.is_safe == True %}
+                                        <span class="status-badge status-safe">SAFE</span>
+                                    {% else %}
+                                        <span class="status-badge status-unsafe">PHISHING</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.8rem; font-family: monospace; color: var(--accent-purple);">
+                                    {{ item.model_name }}
+                                </td>
+                                <td style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    {{ item.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div style="display: flex; gap: 0.8rem; justify-content: flex-end; align-items: center;">
+                                        <a href="/download_report/{{ item.id }}" title="Download PDF Report" style="color: var(--accent-cyan); text-decoration: none; opacity: 0.8; transition: 0.3s;">
+                                            📥
+                                        </a>
+                                        <a href="/delete_scan/{{ item.id }}" title="Delete Record" style="color: #ff453a; text-decoration: none; opacity: 0.7; transition: 0.3s;" onclick="return confirm('Delete this record?')">
+                                            🗑️
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div style="font-size: 4rem; margin-bottom: 1.5rem;">📁</div>
+                    <h3>No intelligence logs found</h3>
+                    <p style="margin-top: 0.5rem;">Start scanning URLs to populate your security history.</p>
+                    <a href="/index" class="btn btn-primary" style="margin-top: 2rem;">Initialize Scanner</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PhishGuard. AI-Driven Phishing Detection System.</p>
+    </footer>
+</body>
+</html>

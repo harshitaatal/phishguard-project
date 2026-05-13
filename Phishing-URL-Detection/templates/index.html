@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Scanner - PhishGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .scanner-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .scanner-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .scanner-header h2 {
+            margin-bottom: 0;
+        }
+
+        .loader-container {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(0, 245, 255, 0.1);
+            border-top: 5px solid var(--accent-cyan);
+            border-radius: 50%;
+            margin: 0 auto 2rem;
+            animation: spin 1s linear infinite, glow 2s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .history-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 1.2rem;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .history-card:hover {
+            border-color: rgba(0, 245, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-safe { background: rgba(48, 209, 88, 0.1); color: var(--accent-green); }
+        .badge-unsafe { background: rgba(255, 69, 58, 0.1); color: var(--accent-red); }
+
+        .percentage-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .percentage-fill {
+            height: 100%;
+            transition: width 1s ease-out;
+        }
+
+        @media (max-width: 992px) {
+            .scanner-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🛡️ <span class="gradient-text">PhishGuard</span></div>
+        <ul class="nav-links">
+            <li><a href="/index" class="active">Scanner</a></li>
+            <li><a href="/bulk">Bulk Scanner</a></li>
+            <li><a href="/email_scanner">Email Scanner</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/history">History</a></li>
+            <li><a href="/logout" class="logout-btn">Log Out</a></li>
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="scanner-grid">
+            <section class="glass-card">
+                <div class="scanner-header">
+                    <span style="font-size: 2rem;">🔍</span>
+                    <h2 class="gradient-text">URL Intelligence Scanner</h2>
+                </div>
+                
+                <form method="POST" action="/index" id="scanForm">
+                    <input type="hidden" name="model" value="model_2_xgboost_classifier">
+                    
+                    <div class="form-group">
+                        <label>Detection Algorithm</label>
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid var(--glass-border); color: var(--accent-cyan); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>⚡</span> XGBoost Classifier (Active)
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="url">Target URL</label>
+                        <input type="text" id="url" name="url" placeholder="https://suspicious-site.com" required {% if processing %}value="{{ url }}"{% endif %}>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">
+                        🚀 Begin Analysis
+                    </button>
+                </form>
+            </section>
+
+            {% if processing %}
+            <section class="glass-card loader-container">
+                <div class="loader"></div>
+                <h3 class="gradient-text">Analyzing Neural Signatures</h3>
+                <p id="progressText" style="color: var(--text-secondary);">Extracting 30+ architectural features...</p>
+            </section>
+            {% elif result %}
+            <section class="glass-card result-display {% if result.is_safe %}result-safe{% else %}result-unsafe{% endif %}">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">
+                    {% if result.is_safe %}🛡️{% else %}⚠️{% endif %}
+                </div>
+                
+                <h2 class="gradient-text">Security Report</h2>
+                
+                <div style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <span class="status-badge {% if result.is_safe %}badge-safe{% else %}badge-unsafe{% endif %}">
+                        Model: {{ result.model_name }}
+                    </span>
+                </div>
+
+                <!-- Website Preview Section -->
+                <div style="margin-bottom: 2rem; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border); background: #000;">
+                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin: 0.5rem;">LIVE PREVIEW</p>
+                    <img src="https://s.wordpress.com/mshots/v1/{{ result.url|urlencode }}?w=600" 
+                         alt="Website Preview" 
+                         style="width: 100%; height: 200px; object-fit: cover; filter: brightness(0.8);"
+                         onerror="this.src='https://via.placeholder.com/600x200/0a0a1f/00f5ff?text=Preview+Not+Available';">
+                </div>
+
+                <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;" class="{% if result.is_safe %}badge-safe{% else %}badge-unsafe{% endif %}">
+                    {% if result.is_safe %}URL APPEARS SECURE{% else %}MALICIOUS ACTIVITY DETECTED{% endif %}
+                </div>
+
+                <div class="percentage-bar">
+                    <div class="percentage-fill" style="width: {{ result.safe_percentage }}%; background: {% if result.is_safe %}var(--accent-green){% else %}var(--accent-red){% endif %};"></div>
+                </div>
+                
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Confidence Score: {{ result.safe_percentage }}% Safe
+                </p>
+
+                <!-- New Intelligence Layer UI -->
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 1.2rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--glass-border); text-align: left;">
+                    <h4 style="margin-top: 0; color: var(--accent-cyan); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Domain Intelligence</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.8rem;">
+                        <div>
+                            <span style="display: block; font-size: 0.75rem; color: var(--text-secondary);">Registration Date</span>
+                            <span style="font-weight: 500;">{{ result.creation_date }}</span>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.75rem; color: var(--text-secondary);">Domain Age</span>
+                            <span style="font-weight: 500;">{{ result.domain_age }}</span>
+                        </div>
+                    </div>
+
+                    {% if result.expanded_url %}
+                    <div style="margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <span style="display: block; font-size: 0.75rem; color: var(--accent-red); font-weight: 700;">⚠ EXPANDED URL (Hidden Destination)</span>
+                        <code style="font-size: 0.85rem; color: var(--text-primary);">{{ result.expanded_url }}</code>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 2rem; word-break: break-all; border: 1px solid var(--glass-border);">
+                    <code style="color: var(--accent-cyan);">{{ result.url }}</code>
+                </div>
+
+                <a href="{{ result.url }}" target="_blank" class="btn {% if result.is_safe %}btn-primary{% else %}btn-outline{% endif %}" style="width: 100%; margin-bottom: 1rem;">
+                    {% if result.is_safe %}✔ Proceed to Site{% else %}⚠ Enter Anyway (NOT RECOMMENDED){% endif %}
+                </a>
+            </section>
+            {% else %}
+            <section class="glass-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; opacity: 0.7;">
+                <div style="font-size: 3rem; margin-bottom: 1.5rem; opacity: 0.3;">📡</div>
+                <h3>Ready for Scan</h3>
+                <p style="color: var(--text-secondary);">Enter a URL and select an algorithm to begin the security assessment.</p>
+            </section>
+            {% endif %}
+        </div>
+
+        {% if history %}
+        <section>
+            <h2 class="gradient-text" style="margin-bottom: 2rem;">📜 Intelligence History</h2>
+            <div class="history-list">
+                {% for item in history %}
+                <div class="history-card">
+                    <div style="display: flex; flex-direction: column; gap: 0.2rem; flex: 1; margin-right: 2rem;">
+                        <span style="font-weight: 600; color: var(--text-primary); word-break: break-all;">{{ item.url }}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ item.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} • {{ item.model_name }}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="status-badge {% if item.is_safe %}badge-safe{% else %}badge-unsafe{% endif %}">
+                            {% if item.is_safe %}SAFE{% else %}UNSAFE{% endif %}
+                        </div>
+                        <a href="/delete_scan/{{ item.id }}" class="delete-btn" style="color: var(--accent-red); opacity: 0.5; transition: 0.3s; text-decoration: none;" onclick="return confirm('Delete this scan result?')">
+                            🗑️
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    {% if processing %}
+    <script>
+        const taskId = "{{ task_id }}";
+        const progressText = document.getElementById('progressText');
+        
+        function checkPrediction() {
+            fetch(`/check_prediction/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'processing') {
+                        if (data.progress) {
+                            progressText.textContent = data.progress;
+                        }
+                        setTimeout(checkPrediction, 1000);
+                    } else if (data.status === 'completed') {
+                        window.location.reload();
+                    } else if (data.status === 'error') {
+                        alert('Error: ' + data.error);
+                        window.location.href = '/index';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    setTimeout(checkPrediction, 2000);
+                });
+        }
+        checkPrediction();
+    </script>
+    {% endif %}
+
+    <footer>
+        <p>&copy; 2026 PhishGuard. AI-Driven Phishing Detection System.</p>
+    </footer>
+</body>
+</html>

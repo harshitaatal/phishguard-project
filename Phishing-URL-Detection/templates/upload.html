@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Intelligence - PhishGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .bulk-wrapper {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            text-align: center;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            background: rgba(0, 245, 255, 0.05);
+            border-color: var(--accent-cyan);
+        }
+
+        .loader-container {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .results-section {
+            margin-top: 3rem;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-safe { background: rgba(48, 209, 88, 0.2); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.3); }
+        .status-unsafe { background: rgba(255, 69, 58, 0.2); color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.3); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🛡️ <span class="gradient-text">PhishGuard</span></div>
+        <ul class="nav-links">
+            <li><a href="/index">Scanner</a></li>
+            <li><a href="/bulk" class="active">Bulk Scanner</a></li>
+            <li><a href="/email_scanner">Email Scanner</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/history">History</a></li>
+            <li><a href="/logout" class="logout-btn">Log Out</a></li>
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        <div class="bulk-wrapper">
+            <header style="text-align: center; margin-bottom: 3rem;">
+                <h1 class="gradient-text">Bulk URL Intelligence</h1>
+                <p style="color: var(--text-secondary);">Analyze multiple URLs simultaneously via CSV/Excel import</p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="glass-card">
+                <form method="POST" action="/bulk" enctype="multipart/form-data" id="bulkForm">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="dataset" name="dataset" accept=".csv,.xlsx,.xls" required style="display: none;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+                        <h3>Drop Intelligence File Here</h3>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Supports CSV, XLSX (Must contain a 'url' column)</p>
+                        <button type="button" class="btn btn-outline" style="margin-top: 1.5rem;" onclick="document.getElementById('dataset').click()">Select File</button>
+                    </div>
+
+                    <div id="loader" class="loader-container">
+                        <div class="loader" style="margin: 0 auto 1.5rem;"></div>
+                        <p class="gradient-text" style="font-weight: 600;">Extracting Features & Running XGBoost...</p>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">This may take up to 60 seconds for larger batches</p>
+                    </div>
+
+                    <div id="fileInfo" style="display: none; text-align: center; margin-bottom: 1.5rem;">
+                        <span id="fileName" style="color: var(--accent-cyan); font-weight: 600;"></span>
+                        <button type="submit" class="btn btn-primary" style="margin-left: 1rem;">Start Bulk Scan</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if bulk_results %}
+            <section class="results-section animate-fade">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 class="gradient-text">Batch Analysis Results</h2>
+                        <div style="display: flex; align-items: center; gap: 1.5rem;">
+                            <span style="color: var(--text-secondary);">Total Processed: {{ total }}</span>
+                            {% if scan_ids %}
+                            <a href="/download_batch_report?ids={{ scan_ids|join(',') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.6rem 1.2rem; background: rgba(0, 245, 255, 0.05);">
+                                📥 Download Batch Report
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Target URL</th>
+                                    <th>Intelligence Status</th>
+                                    <th>Timestamp</th>
+                                    <th style="text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for res in bulk_results %}
+                                <tr>
+                                    <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ res.url }}</td>
+                                    <td>
+                                        {% if res.is_safe == True %}
+                                            <span class="status-badge status-safe">SAFE</span>
+                                        {% elif res.is_safe == False %}
+                                            <span class="status-badge status-unsafe">MALICIOUS</span>
+                                        {% else %}
+                                            <span class="status-badge" style="background: rgba(255,255,255,0.1);">ERROR</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">{{ res.timestamp }}</td>
+                                    <td style="text-align: right;">
+                                        {% if res.id %}
+                                        <a href="/download_report/{{ res.id }}" title="Download URL Report" style="text-decoration: none; font-size: 1.1rem; opacity: 0.8;">
+                                            📥
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('dataset');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const bulkForm = document.getElementById('bulkForm');
+        const loader = document.getElementById('loader');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = 'Selected: ' + this.files[0].name;
+                fileInfo.style.display = 'block';
+                uploadArea.style.borderColor = 'var(--accent-cyan)';
+            }
+        });
+
+        bulkForm.addEventListener('submit', function() {
+            uploadArea.style.display = 'none';
+            fileInfo.style.display = 'none';
+            loader.style.display = 'block';
+        });
+
+        // Drag and drop logic
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            fileName.textContent = 'Selected: ' + files[0].name;
+            fileInfo.style.display = 'block';
+        });
+    </script>
+
+    <footer>
+        <p>&copy; 2026 PhishGuard. AI-Driven Phishing Detection System.</p>
+    </footer>
+</body>
+</html>

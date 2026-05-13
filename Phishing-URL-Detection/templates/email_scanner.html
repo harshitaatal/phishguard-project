@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Intelligence Scanner - PhishGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .scanner-container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .email-input-area {
+            width: 100%;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            resize: vertical;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .email-input-area:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            background: rgba(0, 245, 255, 0.05);
+        }
+
+        .detected-urls-section {
+            margin-top: 3rem;
+        }
+
+        .url-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .url-card:hover {
+            transform: translateX(10px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-safe { background: rgba(48, 209, 88, 0.2); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.3); }
+        .status-unsafe { background: rgba(255, 69, 58, 0.2); color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.3); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🛡️ <span class="gradient-text">PhishGuard</span></div>
+        <ul class="nav-links">
+            <li><a href="/index">Scanner</a></li>
+            <li><a href="/bulk">Bulk Scanner</a></li>
+            <li><a href="/email_scanner" class="active">Email Scanner</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/history">History</a></li>
+            <li><a href="/logout" class="logout-btn">Log Out</a></li>
+        </ul>
+    </nav>
+
+    <div class="container animate-fade">
+        <div class="scanner-container">
+            <header style="text-align: center; margin-bottom: 3rem;">
+                <h1 class="gradient-text">Email Content Intelligence</h1>
+                <p style="color: var(--text-secondary);">Paste the body of a suspicious email to scan all embedded links</p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" style="margin-bottom: 2rem;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="glass-card">
+                <form method="POST">
+                    <textarea 
+                        name="content" 
+                        class="email-input-area" 
+                        placeholder="Paste email content here... (e.g. Dear User, please click here to verify your account: http://scam-site.com)"
+                        required>{{ content if content else '' }}</textarea>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                            <span style="color: var(--accent-cyan);">💡 Tip:</span> Our AI will automatically extract and scan all URLs found in the text.
+                        </p>
+                        <button type="submit" class="btn btn-primary">Scan Email Content</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if results %}
+            <section class="detected-urls-section animate-fade">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 class="gradient-text" style="margin-bottom: 0;">Intelligence Findings</h2>
+                    {% if scan_ids %}
+                    <a href="/download_batch_report?ids={{ scan_ids|join(',') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.6rem 1.2rem; background: rgba(0, 245, 255, 0.05);">
+                        📥 Download Batch Report
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="results-list">
+                    {% for res in results %}
+                    <div class="url-card">
+                        <div style="max-width: 70%;">
+                            <div style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.3rem; word-break: break-all;">
+                                {{ res.url }}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                Scanned at: {{ res.timestamp }}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            {% if res.is_safe %}
+                                <span class="status-badge status-safe">Safe</span>
+                            {% else %}
+                                <span class="status-badge status-unsafe">Malicious</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        All detected links have been saved to your <a href="/history" style="color: var(--accent-cyan);">History</a> for detailed reports.
+                    </p>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PhishGuard. AI-Driven Phishing Detection System.</p>
+    </footer>
+</body>
+</html>
