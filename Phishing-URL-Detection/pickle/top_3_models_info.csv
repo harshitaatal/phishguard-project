@@ -1,0 +1,4 @@
+ML Model,Accuracy,f1_score,Recall,Precision
+Gradient Boosting Classifier,0.974,0.977,0.994,0.986
+XGBoost Classifier,0.971,0.974,0.993,0.985
+Multi-layer Perceptron,0.969,0.972,0.992,0.986

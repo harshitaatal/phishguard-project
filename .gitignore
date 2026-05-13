@@ -157,6 +157,7 @@ Thumbs.db
 # Project specific
 Phishing-URL-Detection/instance/
 Phishing-URL-Detection/uploads/
-Phishing-URL-Detection/pickle/
-chrome-extension/pickle/
-chrome-extension/model/
+# Phishing-URL-Detection/pickle/  <-- Allowed these
+# chrome-extension/pickle/      <-- Allowed these
+# chrome-extension/model/       <-- Allowed these
+
